@@ -1,13 +1,14 @@
+#!/usr/bin/env python3
 import tkinter as tk
 from PIL import Image, ImageTk
 from create_account import CreateAccountWin
 from login_account import LoginAccountWin
 
-
-
 class Main:
     def __init__(self, root):
         self.root = root
+        self.create_account_window = None
+        self.login_account_window = None
         self.display_home_screen()
 
     def display_home_screen(self):
@@ -16,7 +17,7 @@ class Main:
             widget.destroy()
 
         self.root.title("Hotel Reservation System")
-        self.root.geometry("400x400")
+        self.root.geometry("600x600")
 
         panel = tk.Frame(self.root)
         panel.pack(expand=True)
@@ -44,13 +45,15 @@ class Main:
         tk.Button(button_frame, text="Cancel", command=self.quit_app).pack(side=tk.LEFT, padx=10)
 
     def open_create_account(self):
-        CreateAccountWin(self.root, self)
+        if self.create_account_window is None or not self.create_account_window.winfo_exists():
+            self.create_account_window = CreateAccountWin(self.root, self)
     
     def open_login(self):
-        LoginAccountWin(self.root, self)
-
+        if (self.login_account_window is None 
+            or not self.login_account_window.window.winfo_exists()):
+            self.login_account_window = LoginAccountWin(self.root, self)
     def quit_app(self):
-        self.root.quit()
+        self.root.destroy()
 
 
 if __name__ == "__main__":

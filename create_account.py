@@ -1,6 +1,10 @@
+import hashlib
+import re
 import tkinter as tk
+import os
 from tkinter import messagebox
 
+credential_file = "./credentials.txt"
 
 class CreateAccountWin:
     def __init__(self, root, main_app):
@@ -48,15 +52,46 @@ class CreateAccountWin:
     def create_account(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
-
-        if len(username) == 0 or len(password) < 9:
+        
+        existing = {}
+        
+        if os.path.exists(credential_file):
+            with open(credential_file, "r") as f:
+                for line in f:
+                    try:
+                        user, pw = line.strip().split(":")
+                        existing[user] = pw
+                    except:
+                        pass  
+                    
+        if not self.validate_password(password):
             messagebox.showerror("Invalid Input", "Refer to username and password requirements.", parent=self.window)
             return
 
-        messagebox.showinfo("Success", f"Account has been created for {username}!", parent=self.window)
+        if username in existing:
+            messagebox.showerror("Error", "Username already exists", parent=self.window)
+            return
+
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
+        with open(credential_file, "a") as f:
+            f.write(f"{username}:{hashed_password}\n")
+
+        messagebox.showinfo("Success", f"Account has been created for {username}", parent=self.window)
         self.window.destroy()
         self.main_app.display_home_screen()
 
+    def validate_password(self, password):
+        if len(password) < 9:
+            return False
+        if not re.search(r"[A-Z]", password):
+            return False
+        if not re.search(r"[a-z]", password):
+            return False
+        if not re.search(r"\d", password):
+            return False
+        return True
+    
     def cancel(self):
         self.window.destroy()
         self.main_app.display_home_screen()
