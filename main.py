@@ -45,7 +45,7 @@ class Main:
         tk.Button(button_frame, text="Cancel", command=self.quit_app).pack(side=tk.LEFT, padx=10)
 
     def open_create_account(self):
-        if self.create_account_window is None or not self.create_account_window.winfo_exists():
+        if self.create_account_window is None or not self.create_account_window.window.winfo_exists():
             self.create_account_window = CreateAccountWin(self.root, self)
     
     def open_login(self):

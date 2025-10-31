@@ -7,6 +7,7 @@ from home_page import MainInterface
 credential_file = "./credentials.txt"
 
 class LoginAccountWin:
+    # function to handle user login verification
     def __init__(self, root, main_app):
         self.root = root
         self.main_app = main_app
@@ -46,26 +47,35 @@ class LoginAccountWin:
         self.login()
     
     def verification(self, username, password):
+        # function to verify credentials
         isTrue = True
-        isFalse = False
+        found = False
         if not username or not password:
-            return isFalse
+            messagebox.showerror("Login Failed!", "Username and password required.", parent=self.window)
+            return
         
         hashed_input = hashlib.sha256(password.encode()).hexdigest()
 
         if os.path.exists(credential_file):
-            with open(credential_file, "r") as file:
-                for line in file:
-                    try:
-                        saved_user, saved_hash = line.strip().split(":")
-                        if saved_user == username and saved_hash == hashed_input:
-                            return isTrue
-                    except ValueError:
-                        # skip unwanted lines
-                        continue 
-        return isFalse
+            try:
+                with open(credential_file, "r") as f:
+                    for line in f:
+                        try:
+                            user, pw_hash = line.strip().split(":")
+                            if user == username and pw_hash == hashed_input:
+                                found = True
+                                break
+                        except ValueError:
+                            continue
+            except (IOError, PermissionError) as e:
+                messagebox.showerror("File Error", f"Unable to read credentials: {e}", parent=self.window)
+                return
+        else:
+            messagebox.showerror("Login Failed", "No account not found. Please create an account.", parent=self.window)
+            return
     
     def login(self):
+        # function to login and open main interface 
         username = self.username_entry.get().strip()
         password = self.password_entry.get().strip()
 
@@ -121,5 +131,6 @@ class LoginAccountWin:
             #     self.username_entry.focus_set()
 
     def cancel(self):
+        # function to close login window and return to home
         self.window.destroy()
         self.main_app.display_home_screen()

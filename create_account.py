@@ -7,6 +7,9 @@ from tkinter import messagebox
 credential_file = "./credentials.txt"
 
 class CreateAccountWin:
+    
+    # user account creation in window
+
     def __init__(self, root, main_app):
         self.root = root
         self.main_app = main_app
@@ -50,38 +53,57 @@ class CreateAccountWin:
         self.root.wait_window(self.window)
 
     def create_account(self):
+        # Function to create a new user after validation
         username = self.username_entry.get()
         password = self.password_entry.get()
+
+        if not username or not password:
+            messagebox.showerror("Invalid Input", "Username and password cannot be empty.", parent=self.window)
+            return
         
         existing = {}
         
+        # validater path and esnure file is located and then load existing accounts safely
         if os.path.exists(credential_file):
-            with open(credential_file, "r") as f:
-                for line in f:
-                    try:
-                        user, pw = line.strip().split(":")
-                        existing[user] = pw
-                    except:
-                        pass  
-                    
+            try:
+                with open(credential_file, "r") as f:
+                    for line in f:
+                        try:
+                            user, pw = line.strip().split(":")
+                            existing[user] = pw
+                        except ValueError:
+                            continue
+            except (IOError, PermissionError) as e:
+                messagebox.showerror("File Error", f"Error reading credentials: {e}", parent=self.window)
+                return
+
+        # Validate password           
         if not self.validate_password(password):
             messagebox.showerror("Invalid Input", "Refer to username and password requirements.", parent=self.window)
             return
 
+        # check for duplicate created username
         if username in existing:
             messagebox.showerror("Error", "Username already exists", parent=self.window)
             return
 
         hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
-        with open(credential_file, "a") as f:
-            f.write(f"{username}:{hashed_password}\n")
+        # save credentials to file
+        try:
+            with open(credential_file, "a") as f:
+                f.write(f"{username}:{hashed_password}\n")
+        except (IOError, PermissionError) as e:
+            messagebox.showerror("File Error", f"Could not save account: {e}", parent=self.window)
+            return
 
         messagebox.showinfo("Success", f"Account has been created for {username}", parent=self.window)
         self.window.destroy()
         self.main_app.display_home_screen()
 
+    # function 
     def validate_password(self, password):
+        # function to check if password meets requirements
         if len(password) < 9:
             return False
         if not re.search(r"[A-Z]", password):
