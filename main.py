@@ -4,6 +4,16 @@ from PIL import Image, ImageTk
 from create_account import CreateAccountWin
 from login_account import LoginAccountWin
 
+def center_windows(window, width, height):
+    window.update_idletasks()
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    #x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (450 // 2)
+    #y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (400 // 2)
+    window.geometry(f"{width}x{height}+{x}+{y}")
+
 class Main:
     def __init__(self, root):
         self.root = root
@@ -11,13 +21,15 @@ class Main:
         self.login_account_window = None
         self.display_home_screen()
 
+
     def display_home_screen(self):
         # clear  widgets
         for widget in self.root.winfo_children():
             widget.destroy()
 
         self.root.title("Hotel Reservation System")
-        self.root.geometry("600x600")
+        #self.root.geometry("600x600")
+        center_windows(self.root, 600, 600)
 
         panel = tk.Frame(self.root)
         panel.pack(expand=True)

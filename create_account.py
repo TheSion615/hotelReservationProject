@@ -6,6 +6,16 @@ from tkinter import messagebox
 
 credential_file = "./credentials.txt"
 
+def center_windows(window, width, height):
+    window.update_idletasks()
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    #x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (450 // 2)
+    #y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (400 // 2)
+    window.geometry(f"{width}x{height}+{x}+{y}")
+
 class CreateAccountWin:
     
     # user account creation in window
@@ -16,7 +26,8 @@ class CreateAccountWin:
 
         self.window = tk.Toplevel(root)
         self.window.title("Create Account")
-        self.window.geometry("500x300")
+        #self.window.geometry("500x300")
+        center_windows(self.window, 600, 300)
         self.window.resizable(False, False)
 
         self.panel = tk.Frame(self.window)

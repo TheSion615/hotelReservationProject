@@ -56,30 +56,64 @@ class MainInterface:
 
         tk.Label(selector_frame, text="Select Floor:").grid(row=0, column=0, padx=5, pady=5)
         self.floor_var = tk.StringVar(value="1st Floor")
-        tk.OptionMenu(selector_frame, self.floor_var, "1st Floor", "2nd Floor", "3rd Floor").grid(row=0, column=1)
-
+        self.floor_menu = tk.OptionMenu(selector_frame, self.floor_var, "1st Floor", "2nd Floor", "3rd Floor")
+        self.floor_menu.grid(row=0, column=1)
         tk.Label(selector_frame, text="Select Room Type:").grid(row=1, column=0, padx=8, pady=5)
-        self.room_var = tk.StringVar(value="KR - King Room ($59)")
-        tk.OptionMenu(
-            selector_frame, self.room_var,
-            *[f"{code} - {info['name']} (${info['price']:.2f})" for code, info in room_info.items()]
-        ).grid(row=1, column=1)
+        self.room_var = tk.StringVar(value="Select Type")
+        self.room_menu = tk.OptionMenu(selector_frame, self.room_var, "")
+        self.room_menu.grid(row=1, column=1)
+        self.update_floor_options()
+
+        #self.room_var = tk.StringVar(value="KR - King Room ($59)")
+        # tk.OptionMenu(
+        #     selector_frame, self.room_var,
+        #     *[f"{code} - {info['name']} (${info['price']:.2f})" for code, info in room_info.items()]
+        # ).grid(row=1, column=1)
 
         """Buttons"""
         button_frame = tk.Frame(self.root)
         button_frame.pack(pady=15)
 
-        tk.Button(button_frame, text="Reserve Room", command=self.reserve_room, width=15).grid(row=0, column=0, padx=10)
+        self.reserve_button = tk.Button(button_frame, text="Reserve Room", command=self.reserve_room, width=15)
+        self.reserve_button.grid(row=0, column=0, padx=10)
         tk.Button(button_frame, text="Cancel Reservation", command=self.cancel_reservation, width=18).grid(row=0, column=1, padx=10)
         tk.Button(button_frame, text="Available Room Info", command=self.show_manager_info, width=15).grid(row=0, column=2, padx=10)
         tk.Button(button_frame, text="Log Out", command=self.logout, width=10).grid(row=1, column=1, pady=10)
         #tk.Button(selector_frame, text="Show Selection", command=self.show_selection).grid(row=2, column=0, columnspan=2, pady=10)
-
+        self.floor_var.trace("w", self.update_room_types)
+        self.room_var.trace("w", self.update_reservation_button)
+        self.update_room_types()
       # logout frame
         # button_frame = tk.Frame(self.root)
         # button_frame.pack(pady=10)
         # tk.Button(button_frame, text="Log Out", command=self.logout).pack()
-    
+        self.check_hotel_fullness()
+
+    def update_floor_options(self):
+        counts = self.reserved_counting()
+        floor_menu = self.floor_menu["menu"]
+        floor_menu.delete(0, "end")
+
+        available_floor = None
+        for floor in ["1st Floor", "2nd Floor", "3rd Floor"]:
+            if any(counts[(floor, j)] < room_info[j]["per_floor"]
+                          for j in room_info):
+                          floor_menu.add_command(label=floor, command=lambda value=floor:
+                                                self.floor_var.set(value))
+                          if available_floor is None:
+                              available_floor = floor
+            else:
+                floor_menu.add_command(label=floor + " (Sold Out)", state="disabled")
+        
+        if self.floor_var.get() not in ["1st Floor", "2nd Floor", "3rd Floor"] or \
+            not any(counts[(floor, j)] < room_info[j]["per_floor"]
+                    for j in room_info):
+                        if available_floor:
+                            self.floor_var.set(available_floor)
+                        else:
+                            self.floor_var.set("Sold Out")
+
+
     def load_reservations(self):
         # function to load reservation file and return hotel specifics
         empty_list = []
@@ -124,18 +158,30 @@ class MainInterface:
         counts = self.reserved_counting()
         room_information = room_info[selected_room]
 
-        if counts[(selected_floor, selected_room)] >= room_information["per_floor"]:
-            messagebox.showwarning("Sold out", f"Apologies, {room_information['name']}s on {selected_floor} are currently booked.")
-
+        user_res = next((j for j in all_reservations
+                         if j.startswith(f"{self.username}")), None)
         # Prevent duplicate reservation per user
-        if any(r.startswith(f"{self.username},") for r in all_reservations):
+        if user_res:
             messagebox.showinfo("Notice", "You already have a reservation. Cancel it first to book another.")
+            return
+        
+        room_count = counts[(selected_floor, selected_room)]
+        if room_count >= room_information["per_floor"]:
+            messagebox.showwarning(
+                "Sold out", 
+                f"Apologies, {room_information['name']}s on {selected_floor} are currently booked.")
             return
 
         new_entry = f"{self.username},{selected_floor},{selected_room},{room_information['price']}"
         all_reservations.append(new_entry)
         self.save_reservation(all_reservations)
-        messagebox.showinfo("Success", f"You have been reserved for the {room_information['name']} on the {selected_floor} for ${room_information['price']:.2f}.")
+        messagebox.showinfo(
+            "Success", 
+            f"You have been reserved for the {room_information['name']} on the {selected_floor} for ${room_information['price']:.2f}.")
+        
+        self.check_hotel_fullness()
+        # function to refresh the dropdown sold out state
+        self.update_room_types()
 
     def cancel_reservation(self):
         """Cancel current user's reservation."""
@@ -155,6 +201,7 @@ class MainInterface:
         win.geometry("450x450")
         win.resizable(False, False)
         win.transient(self.root)
+
 
         tk.Label(win, text="Current Room Availability", font=("Times New Roman", 13, "bold")).pack(pady=10)
         container = tk.Frame(win)
@@ -188,6 +235,113 @@ class MainInterface:
                 tk.Label(scrollable_frame, text=f"  {info['name']} ({code}): {remaining} available").pack(anchor="w")
 
         tk.Button(win, text="Cancel", command=win.destroy, width=12).pack(pady=10)
+    
+    def update_room_types(self, *args):
+        floor = self.floor_var.get()
+        counts = self.reserved_counting()
+        self.room_menu["menu"].delete(0, "end")
+
+        all_res = self.load_reservations()
+        user_res = None
+
+        for j in all_res:
+            if j.startswith(f"{self.username},"):
+                _, user_floor, user_room, _ = j.split(",")
+                user_res = (user_floor, user_room)
+                break
+        floor_sold_out = True
+        for room_type in room_info:
+            room_count = counts[(floor, room_type)]
+            if user_res and user_res == (floor, room_type):
+                room_count -=1
+            if room_count < room_info[room_type]["per_floor"]:
+                floor_sold_out = False
+                break
+
+        if floor_sold_out:
+            self.room_var.set("Sold Out")
+            self.reserve_button.config(state="disabled")
+            return
+        for room_type, info in room_info.items():
+            room_count = counts[(floor, room_type)]
+            # check for user's own reservation availability
+            is_user_room = user_res and user_res == (floor, room_type)
+            remaining = info["per_floor"] - room_count
+            
+            if is_user_room:
+                remaining += 1
+
+            if remaining <= 0:
+                self.room_menu["menu"].add_command(
+                    label=f"{room_type} - {info['name']} (Sold Out)",  state="disabled"
+                )
+            else:
+                self.room_menu["menu"].add_command(
+                    label=f"{room_type} - {info['name']} (${info['price']:.2f})",
+                    command=lambda value=f"{room_type} - {info['name']} (${info['price']:.2f})": 
+                        self.room_var.set(value)
+                )
+        if user_res and user_res[0] == floor:
+            room_type = user_res[1]
+            room_label = f"{room_type} - {room_info[room_type]['name']} (${room_info[room_type]['price']:.2f})"
+            self.room_var.set(room_label)
+        else:
+            self.room_var.set("Select Type")
+        
+        self.update_reservation_button()
+
+    def update_reservation_button(self, *args):
+        if not hasattr(self, "reserve_button"):
+            return
+        floor = self.floor_var.get()
+        #room = self.room_var.get().split(" - ")[0]
+        room_text = self.room_var.get()
+
+        if room_text == "Select Type" or room_text == "Sold Out":
+            self.reserve_button.config(state="disabled")
+            return
+        room = room_text.split(" - ")[0]
+        counts = self.reserved_counting()
+        available = room_info[room]["per_floor"] - counts[(floor, room)]
+
+        all_res = self.load_reservations()
+        is_user_res = any(j.startswith(f"{self.username},{floor},{room},")
+                          for j in all_res)
+        self.reserve_button.config(
+            state="normal"
+            if available > 0 or is_user_res
+            else "disabled"
+        )
+        # if available <= 0:
+        #     self.reserve_button.config(state="disabled")
+        #     # messagebox.showwarning(
+        #     #     "Sold Out",
+        #     #     f"Sorry, {room_info[room]['name']} on {floor} is fully booked. Please come back later.",
+        #     #     icon="warning"
+        #     # )
+        # else:
+        #     self.reserve_button.config(state="normal")
+    
+    def check_hotel_fullness(self):
+        counts = self.reserved_counting()
+        total_availability = sum(
+            room_info[r]["per_floor"] - counts[(f, r)]
+            for f in [
+                "1st Floor", "2nd Floor", "3rd Floor"
+            ]
+            for r in room_info
+        )
+
+        if total_availability <= 0:
+            for children in self.root.winfo_children():
+                try:
+                    children.config(state="disabled")
+                except:
+                    pass
+            tk.Label(self.root, text=
+                     "Unfornuately, the hotel is FULL. Please come back later", 
+                     fg="red", font=("Times New Roman", 15, "bold")).pack(pady=10)
+            
 
     def logout(self):
         # function to return user to main home

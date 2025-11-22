@@ -6,6 +6,16 @@ from home_page import MainInterface
 
 credential_file = "./credentials.txt"
 
+def center_windows(window, width, height):
+    window.update_idletasks()
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    #x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (450 // 2)
+    #y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (400 // 2)
+    window.geometry(f"{width}x{height}+{x}+{y}")
+
 class LoginAccountWin:
     # function to handle user login verification
     def __init__(self, root, main_app):
@@ -13,7 +23,8 @@ class LoginAccountWin:
         self.main_app = main_app
         self.window = tk.Toplevel(root)
         self.window.title("Login")
-        self.window.geometry("600x300")
+        #self.window.geometry("600x300")
+        center_windows(self.window, 600, 300)
         self.window.resizable(False, False)
 
         panel = tk.Frame(self.window, padx=20, pady=20)

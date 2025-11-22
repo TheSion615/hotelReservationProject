@@ -1,2 +1,6 @@
-jordan15,1st Floor,KR,59.0
+thebest,1st Floor,CS,110.0
+
+xjordan,1st Floor,CS,110.0
+
+okokok,1st Floor,KR,59.0
 
