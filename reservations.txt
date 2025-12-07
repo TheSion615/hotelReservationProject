@@ -1,6 +1,12 @@
-thebest,1st Floor,CS,110.0
+xjordan,1st Floor,KR,59.0
 
-xjordan,1st Floor,CS,110.0
+xjordan,1st Floor,KR,59.0
 
-okokok,1st Floor,KR,59.0
+xjordan,1st Floor,KR,59.0
+
+xjordan,1st Floor,KR,59.0
+
+xjordan,2nd Floor,KR,59.0
+
+okokok,3rd Floor,DR,75.0
 
